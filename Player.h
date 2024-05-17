@@ -37,6 +37,10 @@ public:
         return player.getSize().y/2;
     }
 
+    FloatRect getBounds() {
+        return player.getGlobalBounds();
+    }
+
     void draw(RenderWindow &window) {
         window.draw(player);
     }

@@ -4,6 +4,7 @@
 #include "Player.h"
 #include <vector>
 #include <math.h>
+#include <random>
 
 using namespace std;
 using namespace sf;
@@ -36,8 +37,6 @@ int main()
     Vector2f mosPosWindow;
     Vector2f aimDir;
     Vector2f aimDirNorm;
-    Vector2f shootDir;
-    Vector2f shootDirNorm;
     float startHealth = 25;
     float health = 25;
     float levelMultiplier = 1.1;
@@ -47,8 +46,10 @@ int main()
     const float minTimeBetweenShots = 0.2f;
     float enemyReappearTime = 0.0f;
     const float enemyReappearDelay = 2.0f;
-    float shootInterval = 1.0f;  // Adjust this value for enemy shooting rate
+    float shootInterval = 0.5f;
+    float levelShootMultiplier = 0.9;
     float timeSinceLastShoot = 0.0f;
+    float enemyBulletSpeed = 4.0f;
 
     // Define Objects
     Player player(Vector2f(60,60));
@@ -58,8 +59,6 @@ int main()
     Bullet b1;
     vector<Bullet> bulletVec;
     vector<Bullet> enemyBulletVec;
-
-//    enemyCenter = Vector2f(enemy.getX() + enemy.getRadius(), enemy.getY() + enemy.getRadius());
 
     enemy.setPos(Vector2f(nickStartX, nickStartY));
     player.setPos(Vector2f(wilsonStartX, wilsonStartY));
@@ -166,16 +165,6 @@ int main()
     rectangle.setOutlineColor(Color::White);
     rectangle.setPosition(window.getSize().x/2 - 200,window.getSize().y/2 - 200);
 
-    // Testing center.
-    RectangleShape line;
-    line.setSize(Vector2f(1,1080));
-    line.setFillColor(Color::Green);
-    line.setPosition(window.getSize().x/2,0);
-    RectangleShape line1;
-    line1.setSize(Vector2f(1080,1));
-    line1.setFillColor(Color::Green);
-    line1.setPosition(0,window.getSize().y/2);
-
     // Creates our level text.
     Text level;
     level.setFont(font1);
@@ -229,11 +218,8 @@ int main()
         playerCenter = Vector2f(player.getX() + player.getRadiusX(), player.getY() + player.getRadiusY());
         enemyCenter = Vector2f(enemy.getX() + enemy.getRadius(), enemy.getY() + enemy.getRadius());
         aimDir = mosPosWindow - playerCenter;
-        shootDir = playerCenter;
         length = sqrt(pow(aimDir.x,2) + pow(aimDir.y,2));
-        shootLength = sqrt(pow(shootDir.x,2) + pow(shootDir.y,2));
         aimDirNorm = aimDir / length;
-        shootDirNorm = shootDir / shootLength;
         currentTime = clock.getElapsedTime().asSeconds();
 
         // Creates our Nick movement.
@@ -261,8 +247,6 @@ int main()
         window.draw(levelNum);
         window.draw(sideLine1);
         window.draw(sideLine2);
-        window.draw(center);
-        window.draw(center2);
 
         // Reads keyboard input and moves the wilson object.
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
@@ -296,9 +280,19 @@ int main()
         if (timeSinceLastShoot >= shootInterval) {
             timeSinceLastShoot = 0.0f;
 
+            // Generate a random direction
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<> dis(0, 360); // Random angle between 0 and 360 degrees
+
+            float randomAngle = dis(gen);
+            float radianAngle = randomAngle * (3.14159265 / 180.0f);
+
+            Vector2f shootDirection(cos(radianAngle), sin(radianAngle));
+
             Bullet newBullet;
             newBullet.setPos(enemyCenter);
-            newBullet.currVelocity = shootDirNorm * newBullet.maxSpeed;
+            newBullet.currVelocity = shootDirection * enemyBulletSpeed;
 
             enemyBulletVec.push_back(newBullet);
         }
@@ -309,6 +303,15 @@ int main()
             if(enemyBulletVec[i].bullet.getPosition().x < 0 || enemyBulletVec[i].bullet.getPosition().x > window.getSize().x || enemyBulletVec[i].bullet.getPosition().y < 0 || enemyBulletVec[i].bullet.getPosition().y > window.getSize().y){
                 enemyBulletVec.erase(enemyBulletVec.begin() + i);
                 i--;
+            }
+
+            if(nick.getColor() == Color::Transparent) {
+                enemyBulletVec.erase(enemyBulletVec.begin() + i);
+                i--;
+            }else{
+                if(enemyBulletVec[i].bullet.getGlobalBounds().intersects(player.getBounds())){
+                    window.close();
+                }
             }
         }
 
@@ -322,19 +325,17 @@ int main()
             }
 
             if(nick.getColor() == Color::Transparent){
-                cout << "Can't hit me." << endl;
                 continue;
             }else{
                 if(bulletVec[i].bullet.getGlobalBounds().intersects(enemy.getBounds())){
                     bulletVec.erase(bulletVec.begin() + i);
                     health -= 1;
-                    cout << health << endl;
                     if(health <= 0){
-                        cout << "DONE" << endl;
                         nick.setColor(Color::Transparent);
                         enemyReappearTime = 0.0f;
                         health = startHealth * levelMultiplier;
                         startHealth = startHealth * levelMultiplier;
+                        shootInterval = shootInterval * levelShootMultiplier;
                         levelCounter += 1;
                     }
                 }
@@ -385,8 +386,10 @@ int main()
             wilsonPosition.y = WINDOW_H-wilson.getGlobalBounds().height;
         }
 
-        if(abs(center.getPosition().y - center2.getPosition().y) < collisionDif && abs(center.getPosition().x - center2.getPosition().x) < collisionDif){
-            window.close();
+        if(nick.getColor() != Color::Transparent){
+            if(abs(center.getPosition().y - center2.getPosition().y) < collisionDif && abs(center.getPosition().x - center2.getPosition().x) < collisionDif){
+                window.close();
+            }
         }
 
         for(auto & i : bulletVec) {
