@@ -17,16 +17,10 @@ using namespace sf;
 
 class Enemy {
 public:
-//    Enemy(sf::Vector2f size) {
-//        enemy.setSize(size);
-//        enemy.setFillColor(Color::Red);
-//    }
 
     Enemy(float radius = 75.f) {
         enemy.setRadius(radius);
         enemy.setFillColor(Color::Blue);
-//        enemy.setOutlineThickness(10.f);
-//        enemy.setOutlineColor(Color::Red);
     }
 
     int getX() {
@@ -57,19 +51,7 @@ public:
         return enemy.getGlobalBounds();
     }
 
-//    bool checkColl(Bullet bullet) {
-//        if(bullet.getRight() > enemy.getPosition().x && bullet.getTop() < enemy.getPosition().y + enemy.getSize().y && bullet.getBottom() > enemy.getPosition().y && bullet.getLeft() < enemy.getPosition().x + enemy.getSize().x) {
-////            enemy.setPosition(Vector2f(800,800));
-//            enemy.setFillColor(Color::Transparent);
-//            std::cout << "HIT" << std::endl;
-//            //bullet.setPos(Vector2f(10000,10000));
-//            return true;
-//        } else {
-//            return false;
-//        }
-//    }
-
-    void shoot(Vector2f targetPosition, std::vector<Bullet> &bulletVec, float elapsedTime) {
+    void shoot(Vector2f targetPosition, std::vector<Bullet> &bulletVec, float elapsedTime, Vector2f startPosition) {
         timeSinceLastShoot += elapsedTime;
 
         if (timeSinceLastShoot >= shootInterval) {
@@ -80,7 +62,7 @@ public:
             shootDirection /= shootDirectionLength;
 
             Bullet newBullet;
-            newBullet.setPos(enemy.getPosition());
+            newBullet.setPos(startPosition);
             newBullet.currVelocity = shootDirection * newBullet.maxSpeed;
 
             bulletVec.push_back(newBullet);
@@ -88,7 +70,7 @@ public:
     }
 
     void draw(RenderWindow &window) {
-        window.draw(enemy);
+//        window.draw(enemy);
     }
 private:
     //RectangleShape enemy;

@@ -13,20 +13,20 @@ int main()
     // Declares start positions and sizes for use later.
     float wilsonStartX = 510.f;
     float wilsonStartY = 800.f;
-    float chimpyStartX = 480.f;
-    float chimpyStartY = 380.f;
+    float nickStartX = 480.f;
+    float nickStartY = 380.f;
     float wilsonSize = 30.f;
-    float chimpySize = 60.f;
     float nickSizeR = 90.f;
     float titleSize = 150;
     float xLineSize= 10.f;
     float yLineSize = 1080.f;
     float xVelocity = 7.5;
     float yVelocity = 7.5;
-    float xVelocityChimp = 1.5;
-    float yVelocityChimp = 1.5;
+    float xVelocityNick = 1.5;
+    float yVelocityNick = 1.5;
     float collisionDif = wilsonSize + nickSizeR;
     float length;
+    float shootLength;
     int levelCounter = 1;
     bool isFiring = false;
     bool levelUp = false;
@@ -36,36 +36,39 @@ int main()
     Vector2f mosPosWindow;
     Vector2f aimDir;
     Vector2f aimDirNorm;
+    Vector2f shootDir;
+    Vector2f shootDirNorm;
     float startHealth = 25;
     float health = 25;
     float levelMultiplier = 1.1;
-    //float reappear;
     float currentTime;
     Clock clock;
     float timeSinceLastShot = 0.0f;
     const float minTimeBetweenShots = 0.2f;
     float enemyReappearTime = 0.0f;
     const float enemyReappearDelay = 2.0f;
+    float shootInterval = 1.0f;  // Adjust this value for enemy shooting rate
+    float timeSinceLastShoot = 0.0f;
 
     // Define Objects
     Player player(Vector2f(60,60));
-//    Enemy enemy(Vector2f(160,160));
     vector<Enemy> enemyVec;
     enemyVec.emplace_back();
     Enemy enemy;
     Bullet b1;
     vector<Bullet> bulletVec;
+    vector<Bullet> enemyBulletVec;
 
-    enemyCenter = Vector2f(enemy.getX() + enemy.getRadius(), enemy.getY() + enemy.getRadius());
+//    enemyCenter = Vector2f(enemy.getX() + enemy.getRadius(), enemy.getY() + enemy.getRadius());
 
-    enemy.setPos(enemyCenter);
+    enemy.setPos(Vector2f(nickStartX, nickStartY));
     player.setPos(Vector2f(wilsonStartX, wilsonStartY));
 
     // Creates a vector to handle movement for wilson.
     Vector2f wilsonPosition(wilsonStartX, wilsonStartY);
 
     // Creates a vector to handle movement for chimpy.
-    Vector2f chimpyPosition(chimpyStartX, chimpyStartY);
+    Vector2f nickPosition(nickStartX, nickStartY);
 
     // Creates and renders the start window.
     sf::RenderWindow startWindow(sf::VideoMode(1080, 1080), "Welcome To CHIMPY");
@@ -132,25 +135,12 @@ int main()
         startWindow.draw(play);
         startWindow.draw(sideLine1);
         startWindow.draw(sideLine2);
-        //startWindow.draw(sideLine3);
         startWindow.display();
     }
 
     // Creates and renders the window.
     sf::RenderWindow window(sf::VideoMode(1080, 1080), "CHIMPY");
     window.setFramerateLimit(60);
-
-    // Creates the wilson object.
-//    sf::CircleShape wilson;
-//    wilson.setRadius(wilsonSize);
-//    wilson.setPosition(wilsonPosition);
-//    wilson.setFillColor(sf::Color::Cyan);
-
-    // Creates the Chimpy object.
-    sf::CircleShape chimpy;
-    chimpy.setRadius(chimpySize);
-    chimpy.setPosition(chimpyStartX, chimpyStartY);
-    chimpy.setFillColor(sf::Color::Red);
 
     // Creates Nicks face.
     Texture imageSource;
@@ -159,7 +149,7 @@ int main()
     }
     Sprite nick;
     nick.setTexture(imageSource);
-    nick.setPosition(chimpyStartX, chimpyStartY);
+    nick.setPosition(nickStartX, nickStartY);
 
     // Creates Wilsons face.
     Texture imageSource1;
@@ -194,23 +184,16 @@ int main()
     level.setString("Level");
     level.setPosition(820, 30);
 
-//    Text levelNum;
-//    levelNum.setFont(font1);
-//    levelNum.setCharacterSize(35);
-//    levelNum.setColor(Color::Green);
-//    levelNum.setString(to_string(levelCounter));
-//    levelNum.setPosition(1000,30);
-
     // Creates center circle for wilson.
     CircleShape center;
     center.setRadius(1);
     center.setPosition(wilsonPosition.x + wilsonSize,wilsonPosition.y + wilsonSize);
     center.setFillColor(Color::Red);
 
-    // Creates center circle for chimpy.
+    // Creates center circle for nick.
     CircleShape center2;
     center2.setRadius(1);
-    center2.setPosition(chimpyPosition.x + nickSizeR,chimpyPosition.y + nickSizeR);
+    center2.setPosition(nickPosition.x + nickSizeR, nickPosition.y + nickSizeR);
     center2.setFillColor(Color::Cyan);
 
     // Screen resolutions for border.
@@ -231,38 +214,8 @@ int main()
             if (event.type == Event::KeyPressed && event.key.code == Keyboard::Escape)
                 window.close();
 
-//            if (event.type == Event::KeyPressed && event.key.code == Keyboard::Right) {
-//                isFiring = true;
-//                //bullDirection = 0.3;
-//                //isRight = true;
-//                direction = "Right";
-//            }
-
-//            if (event.type == Event::KeyPressed && event.key.code == Keyboard::Left) {
-//                isFiring = true;
-//                //bullDirection = -0.3;
-//                //isRight = false;
-//                direction = "Left";
-//            }
-
-//            if (event.type == Event::KeyPressed && event.key.code == Keyboard::Up) {
-//                isFiring = true;
-//                //bullDirection = 0.3;
-//                //isRight = true;
-//                direction = "Up";
-//            }
-
-//            if (event.type == Event::KeyPressed && event.key.code == Keyboard::Down) {
-//                isFiring = true;
-//                //bullDirection = 0.3;
-//                //isRight = true;
-//                direction = "Down";
-//            }
-
             if (levelUp){
                 levelCounter += 1;
-
-                //usleep(75000);
                 levelUp = false;
             }
         }
@@ -276,20 +229,22 @@ int main()
         playerCenter = Vector2f(player.getX() + player.getRadiusX(), player.getY() + player.getRadiusY());
         enemyCenter = Vector2f(enemy.getX() + enemy.getRadius(), enemy.getY() + enemy.getRadius());
         aimDir = mosPosWindow - playerCenter;
+        shootDir = playerCenter;
         length = sqrt(pow(aimDir.x,2) + pow(aimDir.y,2));
+        shootLength = sqrt(pow(shootDir.x,2) + pow(shootDir.y,2));
         aimDirNorm = aimDir / length;
+        shootDirNorm = shootDir / shootLength;
         currentTime = clock.getElapsedTime().asSeconds();
 
-        // Creates our Chimpy movement.
-        if (chimpyPosition.x < window.getSize().x/2 - 200 || chimpyPosition.x > window.getSize().x/2 + 80) xVelocityChimp *= -1;
-        if (chimpyPosition.y < window.getSize().y/2 - 200 || chimpyPosition.y > window.getSize().y/2 + 80) yVelocityChimp *= -1;
+        // Creates our Nick movement.
+        if (nickPosition.x < window.getSize().x / 2 - 200 || nickPosition.x > window.getSize().x / 2 + 80) xVelocityNick *= -1;
+        if (nickPosition.y < window.getSize().y / 2 - 200 || nickPosition.y > window.getSize().y / 2 + 80) yVelocityNick *= -1;
 
-        chimpyPosition.x += xVelocityChimp;
-        chimpyPosition.y += yVelocityChimp;
-        chimpy.setPosition(chimpyPosition);
-        nick.setPosition(chimpyPosition);
-        enemy.setPos(Vector2f(chimpyPosition.x + 15.f, chimpyPosition.y + 15.f));
-        center2.setPosition(chimpyPosition.x + nickSizeR,chimpyPosition.y + nickSizeR);
+        nickPosition.x += xVelocityNick;
+        nickPosition.y += yVelocityNick;
+        nick.setPosition(nickPosition);
+        enemy.setPos(Vector2f(nickPosition.x + 15.f, nickPosition.y + 15.f));
+        center2.setPosition(nickPosition.x + nickSizeR, nickPosition.y + nickSizeR);
 
         Text levelNum;
         levelNum.setFont(font1);
@@ -298,54 +253,31 @@ int main()
         levelNum.setString(to_string(levelCounter));
         levelNum.setPosition(1000,30);
 
-//        if (Keyboard::isKeyPressed(Keyboard::L)){
-//            levelCounter += 1;
-//            usleep(75000);
-//        }
-
-//        if (levelUp){
-//            levelCounter += 1;
-//            usleep(75000);
-//            levelUp = false;
-//        }
-
         // Draws and displays the wilson object.
         window.clear();
-        player.draw(window);
-        //window.draw(wilson);
         window.draw(wilson);
         window.draw(nick);
-        //enemy.draw(window);
-        //window.draw(rectangle);
-        //window.draw(line);
-        //window.draw(line1);
-        //window.draw(chimpy);
         window.draw(level);
         window.draw(levelNum);
         window.draw(sideLine1);
         window.draw(sideLine2);
         window.draw(center);
         window.draw(center2);
-//        window.display();
 
         // Reads keyboard input and moves the wilson object.
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W)){
-            //wilson.move(0, -0.5);
             wilsonPosition.y -= yVelocity;
         }
 
         else if(sf::Keyboard::isKeyPressed(sf::Keyboard::S)){
-            //wilson.move(0, 0.5);
             wilsonPosition.y += yVelocity;
         }
 
         if(sf::Keyboard::isKeyPressed(sf::Keyboard::A)){
-            //wilson.move(-0.5, 0);
             wilsonPosition.x -= xVelocity;
         }
 
         else if(sf::Keyboard::isKeyPressed(sf::Keyboard::D)){
-            //wilson.move(0.5, 0);
             wilsonPosition.x += xVelocity;
         }
 
@@ -359,9 +291,25 @@ int main()
         }
 
         // Enemy Bullets
-        for(auto &enemy : enemyVec) {
-            enemy.shoot(playerCenter, bulletVec, deltaTime);
-            enemy.draw(window);
+        timeSinceLastShoot += deltaTime;
+
+        if (timeSinceLastShoot >= shootInterval) {
+            timeSinceLastShoot = 0.0f;
+
+            Bullet newBullet;
+            newBullet.setPos(enemyCenter);
+            newBullet.currVelocity = shootDirNorm * newBullet.maxSpeed;
+
+            enemyBulletVec.push_back(newBullet);
+        }
+
+        for(int i = 0; i < enemyBulletVec.size(); i++){
+            enemyBulletVec[i].bullet.move(enemyBulletVec[i].currVelocity);
+            // Out of bounds.
+            if(enemyBulletVec[i].bullet.getPosition().x < 0 || enemyBulletVec[i].bullet.getPosition().x > window.getSize().x || enemyBulletVec[i].bullet.getPosition().y < 0 || enemyBulletVec[i].bullet.getPosition().y > window.getSize().y){
+                enemyBulletVec.erase(enemyBulletVec.begin() + i);
+                i--;
+            }
         }
 
         for(int i = 0; i < bulletVec.size(); i++){
@@ -383,11 +331,7 @@ int main()
                     cout << health << endl;
                     if(health <= 0){
                         cout << "DONE" << endl;
-                        //enemy.setColRed();
-//                    sleep(2);
-//                    enemy.setColBlue();
                         nick.setColor(Color::Transparent);
-                        //reappear = currentTime + 2;
                         enemyReappearTime = 0.0f;
                         health = startHealth * levelMultiplier;
                         startHealth = startHealth * levelMultiplier;
@@ -397,19 +341,16 @@ int main()
             }
         }
         if(enemyReappearTime > enemyReappearDelay){
-            //enemy.setColBlue();
             nick.setColor(Color::White);
         }
 
         // Update wilson's position.
-        //wilson.setPosition(wilsonPosition);
         wilson.setPosition(wilsonPosition);
         player.setPos(Vector2f(wilsonPosition.x, wilsonPosition.y));
         center.setPosition(wilsonPosition.x + wilsonSize, wilsonPosition.y + wilsonSize);
 
         // Creates left window border.
         if(wilson.getPosition().x<10){
-            //wilson.setPosition(10,wilson.getPosition().y);
             wilson.setPosition(10, wilson.getPosition().y);
             player.setPos(Vector2f(10, wilson.getPosition().y));
             center.setPosition(10 + wilsonSize, wilson.getPosition().y + wilsonSize);
@@ -419,7 +360,6 @@ int main()
 
         // Creates top window border.
         if(wilson.getPosition().y<0){
-            //wilson.setPosition(wilson.getPosition().x, 0);
             wilson.setPosition(wilson.getPosition().x, 0);
             player.setPos(Vector2f(wilson.getPosition().x, 0));
             center.setPosition(wilson.getPosition().x + wilsonSize, 0 + wilsonSize);
@@ -429,7 +369,6 @@ int main()
 
         // Creates right window border.
         if(wilson.getPosition().x+wilson.getGlobalBounds().width>WINDOW_W - 10){
-            //wilson.setPosition(WINDOW_W-wilson.getGlobalBounds().width - 10, wilson.getPosition().y);
             wilson.setPosition(WINDOW_W-wilson.getGlobalBounds().width - 10, wilson.getPosition().y);
             player.setPos(Vector2f(WINDOW_W-wilson.getGlobalBounds().width - 10, wilson.getPosition().y));
             center.setPosition(WINDOW_W-wilson.getGlobalBounds().width - 10 + wilsonSize, wilson.getPosition().y + wilsonSize);
@@ -439,7 +378,6 @@ int main()
 
         // Creates bottom window border.
         if(wilson.getPosition().y+wilson.getGlobalBounds().height>WINDOW_H){
-            //wilson.setPosition(wilson.getPosition().x, WINDOW_H-wilson.getGlobalBounds().height);
             wilson.setPosition(wilson.getPosition().x, WINDOW_H-wilson.getGlobalBounds().height);
             player.setPos(Vector2f(wilson.getPosition().x, WINDOW_H-wilson.getGlobalBounds().height));
             center.setPosition(wilson.getPosition().x + wilsonSize, WINDOW_H-wilson.getGlobalBounds().height + wilsonSize);
@@ -451,20 +389,13 @@ int main()
             window.close();
         }
 
-//        if(isFiring) {
-//            Bullet newBullet(Vector2f(10,10), direction);
-//            newBullet.setPos(Vector2f(player.getX() + 30, player.getY() + 30));
-//            bulletVec.push_back(newBullet);
-//            isFiring = false;
-//        }
-
         for(auto & i : bulletVec) {
             i.draw(window);
         }
 
-//        for(auto & i : bulletVec) {
-//            levelUp = enemy.checkColl(i);
-//        }
+        for(auto & i : enemyBulletVec) {
+            i.draw(window);
+        }
 
         window.display();
     }
